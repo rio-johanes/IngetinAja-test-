@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IngetinAja - Pengelola Tugas Harian</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📝</text></svg>">
+    <style>
+        /* Custom styles untuk notifications */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #f87171;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .priority-low {
+            border-left: 4px solid #10b981;
+        }
+        
+        .priority-medium {
+            border-left: 4px solid #f59e0b;
+        }
+        
+        .priority-high {
+            border-left: 4px solid #ef4444;
+        }
+        
+        .status-todo {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .status-in-progress {
+            background-color: #dbeafe;
+            color: #1d4ed8;
+        }
+        
+        .status-done {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        
+        .checkbox-custom {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #9ca3af;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+        }
+        
+        .checkbox-custom:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
+        }
+        
+        .checkbox-custom:checked::after {
+            content: '✓';
+            position: absolute;
+            color: white;
+            font-size: 14px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e5e7eb;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #10b981;
+            transition: width 0.3s ease;
+        }
+        
+        /* Animasi untuk item baru */
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .task-item {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        /* Tag untuk email kolaborator */
+        .collaborator-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: #e0f2fe;
+            color: #0369a1;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin: 2px;
+        }
+        
+        .collaborator-tag button {
+            margin-left: 4px;
+            color: #0369a1;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+    <!-- Header dengan navigasi -->
+    <header class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-white p-2 rounded-lg">
+                        <i class="fas fa-tasks text-indigo-600 text-xl"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold">IngetinAja</h1>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Notifikasi bell -->
+                    <div class="relative cursor-pointer" id="notificationBtn">
+                        <i class="fas fa-bell text-xl"></i>
+                        <div class="notification-badge hidden" id="notificationBadge">0</div>
+                    </div>
+                    
+                    <!-- User menu -->
+                    <div class="relative" id="userMenu">
+                        <div class="flex items-center space-x-2 cursor-pointer bg-white/20 hover:bg-white/30 p-2 rounded-lg">
+                            <i class="fas fa-user-circle text-xl"></i>
+                            <span id="usernameDisplay">Guest</span>
+                            <i class="fas fa-chevron-down text-sm"></i>
+                        </div>
+                        
+                        <!-- Dropdown menu -->
+                        <div class="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-lg hidden z-10" id="userDropdown">
+                            <div class="px-4 py-3 border-b">
+                                <p class="text-sm font-semibold" id="dropdownUsername">Guest</p>
+                                <p class="text-xs text-gray-500" id="dropdownEmail">Belum login</p>
+                            </div>
+                            <div class="py-1">
+                                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-100" id="loginBtn">
+                                    <i class="fas fa-sign-in-alt mr-2"></i>Login
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-100" id="registerBtn">
+                                    <i class="fas fa-user-plus mr-2"></i>Register
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm hover:bg-gray-100 hidden" id="logoutBtn">
+                                    <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Modal untuk Login/Register -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20 hidden" id="authModal">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="px-6 py-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800" id="modalTitle">Login</h2>
+                <button class="text-gray-500 hover:text-gray-700" id="closeModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="px-6 py-4">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="authEmail">Email</label>
+                    <input type="email" id="authEmail" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="authPassword">Password</label>
+                    <input type="password" id="authPassword" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <div class="mb-4 hidden" id="registerFields">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="authUsername">Username</label>
+                    <input type="text" id="authUsername" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                
+                <button class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg transition duration-200" id="authActionBtn">
+                    Login
+                </button>
+                
+                <div class="text-center mt-4">
+                    <p class="text-sm text-gray-600">
+                        <span id="toggleAuthText">Belum punya akun?</span>
+                        <button class="text-indigo-600 hover:text-indigo-800 font-medium ml-1" id="toggleAuthBtn">Register</button>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifikasi Popup -->
+    <div class="fixed top-4 right-4 w-80 bg-white rounded-lg shadow-lg border-l-4 border-yellow-500 z-30 hidden" id="notificationPopup">
+        <div class="p-4">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-bold text-gray-800">Pengingat Tugas!</h3>
+                    <p class="text-sm text-gray-600 mt-1" id="notificationMessage"></p>
+                    <p class="text-xs text-gray-500 mt-2" id="notificationTime"></p>
+                </div>
+                <button class="text-gray-500 hover:text-gray-700" id="closeNotificationBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Sidebar dengan statistik dan filter -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow p-5 mb-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Statistik Tugas</h2>
+                    
+                    <div class="grid grid-cols-3 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg text-center">
+                            <p class="text-2xl font-bold text-blue-600" id="todoCount">0</p>
+                            <p class="text-sm text-blue-800">To Do</p>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg text-center">
+                            <p class="text-2xl font-bold text-yellow-600" id="inProgressCount">0</p>
+                            <p class="text-sm text-yellow-800">In Progress</p>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg text-center">
+                            <p class="text-2xl font-bold text-green-600" id="doneCount">0</p>
+                            <p class="text-sm text-green-800">Done</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <h3 class="font-medium text-gray-700 mb-2">Progress Keseluruhan</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="overallProgress" style="width: 0%"></div>
+                        </div>
+                        <p class="text-right text-sm text-gray-600 mt-1">
+                            <span id="progressPercentage">0%</span> selesai
+                        </p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h3 class="font-medium text-gray-700 mb-2">Filter Tugas</h3>
+                        <div class="space-y-2">
+                            <button class="filter-btn w-full text-left px-3 py-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-800" data-filter="all">
+                                <i class="fas fa-list mr-2"></i>Semua Tugas
+                            </button>
+                            <button class="filter-btn w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-800" data-filter="today">
+                                <i class="fas fa-calendar-day mr-2"></i>Deadline Hari Ini
+                            </button>
+                            <button class="filter-btn w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 text-gray-800" data-filter="high">
+                                <i class="fas fa-exclamation-circle mr-2"></i>Prioritas Tinggi
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center" id="addTaskBtn">
+                        <i class="fas fa-plus mr-2"></i>Tambah Tugas Baru
+                    </button>
+                </div>
+                
+                <!-- Panel Kolaborasi -->
+                <div class="bg-white rounded-xl shadow p-5">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">Tugas Dibagikan</h2>
+                    <div class="space-y-3" id="sharedTasksList">
+                        <p class="text-sm text-gray-500 italic">Belum ada tugas yang dibagikan dengan Anda</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Daftar Tugas -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow">
+                    <div class="p-5 border-b">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-xl font-bold text-gray-800">Daftar Tugas</h2>
+                            <div class="flex space-x-2">
+                                <div class="relative">
+                                    <input type="text" id="searchTask" placeholder="Cari tugas..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                                </div>
+                                <button class="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg" id="sortTasksBtn" title="Urutkan">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-5" id="tasksContainer">
+                        <!-- Daftar tugas akan ditampilkan di sini -->
+                        <div class="text-center py-10">
+                            <i class="fas fa-tasks text-4xl text-gray-300 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-500">Belum ada tugas</h3>
+                            <p class="text-gray-400 mt-2">Klik "Tambah Tugas Baru" untuk membuat tugas pertama Anda</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal untuk tambah/edit tugas -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20 hidden" id="taskModal">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="px-6 py-4 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800" id="taskModalTitle">Tambah Tugas Baru</h2>
+                <button class="text-gray-500 hover:text-gray-700" id="closeTaskModalBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="px-6 py-4">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="taskTitle">Judul Tugas</label>
+                    <input type="text" id="taskTitle" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Misal: Membuat laporan keuangan">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-medium mb-2" for="taskDescription">Deskripsi Tugas</label>
+                    <textarea id="taskDescription" rows="3" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Deskripsi detail tentang tugas ini..."></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="taskDeadline">Deadline</label>
+                        <input type="date" id="taskDeadline" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="taskPriority">Prioritas</label>
+                        <select id="taskPriority" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="low">Rendah</option>
+                            <option value="medium" selected>Sedang</option>
+                            <option value="high">Tinggi</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="taskStatus">Status</label>
+                        <select id="taskStatus" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="todo" selected>To Do</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="done">Done</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700 text-sm font-medium mb-2" for="taskReminder">Pengingat</label>
+                        <select id="taskReminder" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <option value="none" selected>Tidak ada</option>
+                            <option value="1-hour">1 jam sebelum deadline</option>
+                            <option value="1-day">1 hari sebelum deadline</option>
+                            <option value="same-day">Pada hari deadline</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Checklist untuk pembagian tugas -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-gray-700 text-sm font-medium">Checklist Subtugas (Opsional)</label>
+                        <button type="button" class="text-sm text-indigo-600 hover:text-indigo-800" id="addChecklistItemBtn">
+                            <i class="fas fa-plus mr-1"></i>Tambah Item
+                        </button>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div id="checklistContainer">
+                            <!-- Item checklist akan ditampilkan di sini -->
+                        </div>
+                        
+                        <div class="mt-3 flex justify-between items-center">
+                            <span class="text-sm text-gray-600">
+                                <span id="checklistProgress">0/0</span> selesai
+                            </span>
+                            <div class="w-24 progress-bar">
+                                <div class="progress-fill" id="checklistProgressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Bagian Kolaborasi -->
+                <div class="mb-6">
+                    <div class="flex justify-between items-center mb-2">
+                        <label class="block text-gray-700 text-sm font-medium">Kolaborasi (Bagikan dengan pengguna lain)</label>
+                    </div>
+                    
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <div class="mb-3">
+                            <div class="flex space-x-2">
+                                <input type="email" id="collabEmail" placeholder="Email pengguna" class="flex-grow px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm">
+                                <button class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg flex items-center" id="addCollaboratorBtn">
+                                    <i class="fas fa-plus mr-2"></i>Tambah
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Masukkan email pengguna yang ingin diajak berkolaborasi</p>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Kolaborator:</h4>
+                            <div id="collaboratorsList">
+                                <!-- Daftar kolaborator akan muncul di sini -->
+                                <p class="text-sm text-gray-500 italic">Belum ada kolaborator</p>
+                            </div>
+                        </div>
+                        
+                        <div class="text-xs text-gray-600">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            Kolaborator akan dapat melihat dan mengedit tugas ini
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button class="px-5 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50" id="cancelTaskBtn">
+                        Batal
+                    </button>
+                    <button class="px-5 py-2 bg-indigo-500 hover:bg-indigo-600 text-white font-medium rounded-lg transition duration-200" id="saveTaskBtn">
+                        Simpan Tugas
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white py-6 mt-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-4 md:mb-0">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-tasks text-2xl text-indigo-300"></i>
+                        <h2 class="text-xl font-bold">IngetinAja</h2>
+                    </div>
+                    <p class="text-gray-400 text-sm mt-2">Pengelola Tugas Harian yang Efektif</p>
+                </div>
+                
+                <div class="text-center md:text-right">
+                    <p class="text-gray-400 text-sm">&copy; 2023 IngetinAja. Semua hak dilindungi.</p>
+                    <p class="text-gray-500 text-xs mt-1">Data disimpan di localStorage browser Anda</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Inisialisasi aplikasi
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elemen DOM
+            const elements = {
+                // Authentication
+                authModal: document.getElementById('authModal'),
+                modalTitle: document.getElementById('modalTitle'),
+                authEmail: document.getElementById('authEmail'),
+                authPassword: document.getElementById('authPassword'),
+                authUsername: document.getElementById('authUsername'),
+                authActionBtn: document.getElementById('authActionBtn'),
+                toggleAuthBtn: document.getElementById('toggleAuthBtn'),
+                toggleAuthText: document.getElementById('toggleAuthText'),
+                registerFields: document.getElementById('registerFields'),
+                closeModalBtn: document.getElementById('closeModalBtn'),
+                loginBtn: document.getElementById('loginBtn'),
+                registerBtn: document.getElementById('registerBtn'),
+                logoutBtn: document.getElementById('logoutBtn'),
+                
+                // User info
+                usernameDisplay: document.getElementById('usernameDisplay'),
+                dropdownUsername: document.getElementById('dropdownUsername'),
+                dropdownEmail: document.getElementById('dropdownEmail'),
+                userMenu: document.getElementById('userMenu'),
+                userDropdown: document.getElementById('userDropdown'),
+                
+                // Notifications
+                notificationBtn: document.getElementById('notificationBtn'),
+                notificationBadge: document.getElementById('notificationBadge'),
+                notificationPopup: document.getElementById('notificationPopup'),
+                notificationMessage: document.getElementById('notificationMessage'),
+                notificationTime: document.getElementById('notificationTime'),
+                closeNotificationBtn: document.getElementById('closeNotificationBtn'),
+                
+                // Task management
+                tasksContainer: document.getElementById('tasksContainer'),
+                addTaskBtn: document.getElementById('addTaskBtn'),
+                taskModal: document.getElementById('taskModal'),
+                taskModalTitle: document.getElementById('taskModalTitle'),
+                taskTitle: document.getElementById('taskTitle'),
+                taskDescription: document.getElementById('taskDescription'),
+                taskDeadline: document.getElementById('taskDeadline'),
+                taskPriority: document.getElementById('taskPriority'),
+                taskStatus: document.getElementById('taskStatus'),
+                taskReminder: document.getElementById('taskReminder'),
+                closeTaskModalBtn: document.getElementById('closeTaskModalBtn'),
+                cancelTaskBtn: document.getElementById('cancelTaskBtn'),
+                saveTaskBtn: document.getElementById('saveTaskBtn'),
+                
+                // Checklist
+                checklistContainer: document.getElementById('checklistContainer'),
+                addChecklistItemBtn: document.getElementById('addChecklistItemBtn'),
+                checklistProgress: document.getElementById('checklistProgress'),
+                checklistProgressBar: document.getElementById('checklistProgressBar'),
+                
+                // Collaboration
+                collabEmail: document.getElementById('collabEmail'),
+                addCollaboratorBtn: document.getElementById('addCollaboratorBtn'),
+                collaboratorsList: document.getElementById('collaboratorsList'),
+                sharedTasksList: document.getElementById('sharedTasksList'),
+                
+                // Statistics and filters
+                todoCount: document.getElementById('todoCount'),
+                inProgressCount: document.getElementById('inProgressCount'),
+                doneCount: document.getElementById('doneCount'),
+                overallProgress: document.getElementById('overallProgress'),
+                progressPercentage: document.getElementById('progressPercentage'),
+                filterBtns: document.querySelectorAll('.filter-btn'),
+                searchTask: document.getElementById('searchTask'),
+                sortTasksBtn: document.getElementById('sortTasksBtn')
+            };
+            
+            // State aplikasi
+            let state = {
+                currentUser: null,
+                tasks: [],
+                currentFilter: 'all',
+                currentSort: 'deadline',
+                editingTaskId: null,
+                isLoginMode: true,
+                notifications: [],
+                collaborators: [] // Kolaborator untuk tugas yang sedang diedit
+            };
+            
+            // Inisialisasi data
+            function initApp() {
+                // Cek apakah sudah login
+                const savedUser = localStorage.getItem('ingetinaja_currentUser');
+                if (savedUser) {
+                    state.currentUser = JSON.parse(savedUser);
+                    updateUserUI();
+                    showLogoutButton();
+                }
+                
+                // Load data tugas
+                loadTasks();
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+                // Set tanggal default untuk deadline (besok)
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                elements.taskDeadline.valueAsDate = tomorrow;
+                
+                // Periksa notifikasi
+                checkNotifications();
+                setInterval(checkNotifications, 60000); // Periksa setiap 1 menit
+            }
+            
+            // Setup event listeners
+            function setupEventListeners() {
+                // Authentication
+                elements.loginBtn.addEventListener('click', () => openAuthModal('login'));
+                elements.registerBtn.addEventListener('click', () => openAuthModal('register'));
+                elements.logoutBtn.addEventListener('click', logout);
+                elements.toggleAuthBtn.addEventListener('click', toggleAuthMode);
+                elements.authActionBtn.addEventListener('click', handleAuth);
+                elements.closeModalBtn.addEventListener('click', closeAuthModal);
+                
+                // User menu
+                elements.userMenu.addEventListener('click', toggleUserDropdown);
+                document.addEventListener('click', closeUserDropdown);
+                
+                // Notifications
+                elements.notificationBtn.addEventListener('click', showNotifications);
+                elements.closeNotificationBtn.addEventListener('click', closeNotification);
+                
+                // Task management
+                elements.addTaskBtn.addEventListener('click', () => openTaskModal('add'));
+                elements.closeTaskModalBtn.addEventListener('click', closeTaskModal);
+                elements.cancelTaskBtn.addEventListener('click', closeTaskModal);
+                elements.saveTaskBtn.addEventListener('click', saveTask);
+                
+                // Checklist
+                elements.addChecklistItemBtn.addEventListener('click', addChecklistItem);
+                elements.checklistContainer.addEventListener('click', handleChecklistClick);
+                elements.checklistContainer.addEventListener('input', updateChecklistProgress);
+                
+                // Collaboration
+                elements.addCollaboratorBtn.addEventListener('click', addCollaborator);
+                elements.collaboratorsList.addEventListener('click', removeCollaborator);
+                
+                // Filters and search
+                elements.filterBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        // Reset semua filter button
+                        elements.filterBtns.forEach(b => {
+                            b.classList.remove('bg-gray-100');
+                            b.classList.add('hover:bg-gray-100');
+                        });
+                        
+                        // Aktifkan button yang dipilih
+                        btn.classList.add('bg-gray-100');
+                        btn.classList.remove('hover:bg-gray-100');
+                        
+                        const filter = btn.getAttribute('data-filter');
+                        state.currentFilter = filter;
+                        renderTasks();
+                    });
+                });
+                
+                elements.searchTask.addEventListener('input', renderTasks);
+                elements.sortTasksBtn.addEventListener('click', toggleSort);
+            }
+            
+            // Authentication functions
+            function openAuthModal(mode) {
+                state.isLoginMode = mode === 'login';
+                updateAuthModal();
+                elements.authModal.classList.remove('hidden');
+            }
+            
+            function closeAuthModal() {
+                elements.authModal.classList.add('hidden');
+                resetAuthForm();
+            }
+            
+            function toggleAuthMode() {
+                state.isLoginMode = !state.isLoginMode;
+                updateAuthModal();
+            }
+            
+            function updateAuthModal() {
+                if (state.isLoginMode) {
+                    elements.modalTitle.textContent = 'Login';
+                    elements.authActionBtn.textContent = 'Login';
+                    elements.toggleAuthText.textContent = 'Belum punya akun?';
+                    elements.toggleAuthBtn.textContent = 'Register';
+                    elements.registerFields.classList.add('hidden');
+                } else {
+                    elements.modalTitle.textContent = 'Register';
+                    elements.authActionBtn.textContent = 'Register';
+                    elements.toggleAuthText.textContent = 'Sudah punya akun?';
+                    elements.toggleAuthBtn.textContent = 'Login';
+                    elements.registerFields.classList.remove('hidden');
+                }
+            }
+            
+            function resetAuthForm() {
+                elements.authEmail.value = '';
+                elements.authPassword.value = '';
+                elements.authUsername.value = '';
+            }
+            
+            function handleAuth() {
+                const email = elements.authEmail.value.trim();
+                const password = elements.authPassword.value.trim();
+                const username = elements.authUsername.value.trim();
+                
+                if (!email || !password) {
+                    alert('Email dan password harus diisi!');
+                    return;
+                }
+                
+                if (!state.isLoginMode && !username) {
+                    alert('Username harus diisi untuk registrasi!');
+                    return;
+                }
+                
+                if (state.isLoginMode) {
+                    // Login
+                    const users = JSON.parse(localStorage.getItem('ingetinaja_users') || '[]');
+                    const user = users.find(u => u.email === email && u.password === password);
+                    
+                    if (user) {
+                        state.currentUser = user;
+                        localStorage.setItem('ingetinaja_currentUser', JSON.stringify(user));
+                        updateUserUI();
+                        showLogoutButton();
+                        closeAuthModal();
+                        alert('Login berhasil!');
+                        renderTasks();
+                        renderSharedTasks();
+                    } else {
+                        alert('Email atau password salah!');
+                    }
+                } else {
+                    // Register
+                    const users = JSON.parse(localStorage.getItem('ingetinaja_users') || '[]');
+                    
+                    // Cek apakah email sudah terdaftar
+                    if (users.some(u => u.email === email)) {
+                        alert('Email sudah terdaftar!');
+                        return;
+                    }
+                    
+                    // Tambah user baru
+                    const newUser = {
+                        id: Date.now().toString(),
+                        email,
+                        username,
+                        password // Dalam aplikasi nyata, password harus di-hash
+                    };
+                    
+                    users.push(newUser);
+                    localStorage.setItem('ingetinaja_users', JSON.stringify(users));
+                    
+                    // Auto login setelah register
+                    state.currentUser = newUser;
+                    localStorage.setItem('ingetinaja_currentUser', JSON.stringify(newUser));
+                    updateUserUI();
+                    showLogoutButton();
+                    closeAuthModal();
+                    alert('Registrasi berhasil!');
+                    renderTasks();
+                }
+            }
+            
+            function logout() {
+                state.currentUser = null;
+                localStorage.removeItem('ingetinaja_currentUser');
+                updateUserUI();
+                showLoginButton();
+                alert('Logout berhasil!');
+                renderTasks();
+                renderSharedTasks();
+            }
+            
+            function updateUserUI() {
+                if (state.currentUser) {
+                    elements.usernameDisplay.textContent = state.currentUser.username;
+                    elements.dropdownUsername.textContent = state.currentUser.username;
+                    elements.dropdownEmail.textContent = state.currentUser.email;
+                } else {
+                    elements.usernameDisplay.textContent = 'Guest';
+                    elements.dropdownUsername.textContent = 'Guest';
+                    elements.dropdownEmail.textContent = 'Belum login';
+                }
+            }
+            
+            function showLogoutButton() {
+                elements.loginBtn.classList.add('hidden');
+                elements.registerBtn.classList.add('hidden');
+                elements.logoutBtn.classList.remove('hidden');
+            }
+            
+            function showLoginButton() {
+                elements.loginBtn.classList.remove('hidden');
+                elements.registerBtn.classList.remove('hidden');
+                elements.logoutBtn.classList.add('hidden');
+            }
+            
+            function toggleUserDropdown(e) {
+                e.stopPropagation();
+                elements.userDropdown.classList.toggle('hidden');
+            }
+            
+            function closeUserDropdown(e) {
+                if (!elements.userMenu.contains(e.target)) {
+                    elements.userDropdown.classList.add('hidden');
+                }
+            }
+            
+            // Task management functions
+            function loadTasks() {
+                // Load tugas dari localStorage
+                const savedTasks = localStorage.getItem('ingetinaja_tasks');
+                if (savedTasks) {
+                    state.tasks = JSON.parse(savedTasks);
+                }
+                
+                renderTasks();
+                updateStatistics();
+                renderSharedTasks();
+            }
+            
+            function saveTasks() {
+                localStorage.setItem('ingetinaja_tasks', JSON.stringify(state.tasks));
+                renderTasks();
+                updateStatistics();
+                renderSharedTasks();
+            }
+            
+            function openTaskModal(mode, taskId = null) {
+                // Reset kolaborator
+                state.collaborators = [];
+                
+                if (mode === 'edit' && taskId) {
+                    // Edit task
+                    const task = state.tasks.find(t => t.id === taskId);
+                    if (!task) return;
+                    
+                    elements.taskModalTitle.textContent = 'Edit Tugas';
+                    elements.taskTitle.value = task.title;
+                    elements.taskDescription.value = task.description;
+                    elements.taskDeadline.value = task.deadline;
+                    elements.taskPriority.value = task.priority;
+                    elements.taskStatus.value = task.status;
+                    elements.taskReminder.value = task.reminder;
+                    
+                    // Isi checklist
+                    elements.checklistContainer.innerHTML = '';
+                    if (task.checklist && task.checklist.length > 0) {
+                        task.checklist.forEach(item => {
+                            addChecklistItem(item.text, item.completed, item.id);
+                        });
+                    }
+                    
+                    // Isi kolaborator
+                    if (task.sharedWith && task.sharedWith.length > 0) {
+                        state.collaborators = [...task.sharedWith];
+                        renderCollaborators();
+                    }
+                    
+                    state.editingTaskId = taskId;
+                } else {
+                    // Add new task
+                    elements.taskModalTitle.textContent = 'Tambah Tugas Baru';
+                    elements.taskTitle.value = '';
+                    elements.taskDescription.value = '';
+                    
+                    // Set tanggal default (besok)
+                    const tomorrow = new Date();
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    elements.taskDeadline.valueAsDate = tomorrow;
+                    
+                    elements.taskPriority.value = 'medium';
+                    elements.taskStatus.value = 'todo';
+                    elements.taskReminder.value = 'none';
+                    
+                    // Reset checklist dan kolaborator
+                    elements.checklistContainer.innerHTML = '';
+                    elements.collaboratorsList.innerHTML = '<p class="text-sm text-gray-500 italic">Belum ada kolaborator</p>';
+                    
+                    state.editingTaskId = null;
+                }
+                
+                updateChecklistProgress();
+                elements.taskModal.classList.remove('hidden');
+            }
+            
+            function closeTaskModal() {
+                elements.taskModal.classList.add('hidden');
+                state.collaborators = [];
+            }
+            
+            function saveTask() {
+                const title = elements.taskTitle.value.trim();
+                const description = elements.taskDescription.value.trim();
+                const deadline = elements.taskDeadline.value;
+                const priority = elements.taskPriority.value;
+                const status = elements.taskStatus.value;
+                const reminder = elements.taskReminder.value;
+                
+                if (!title) {
+                    alert('Judul tugas harus diisi!');
+                    return;
+                }
+                
+                // Validasi deadline
+                if (!deadline) {
+                    alert('Deadline harus diisi!');
+                    return;
+                }
+                
+                // Kumpulkan checklist items
+                const checklistItems = [];
+                const checklistElements = elements.checklistContainer.querySelectorAll('.checklist-item');
+                
+                checklistElements.forEach((item, index) => {
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    const textInput = item.querySelector('input[type="text"]');
+                    const text = textInput.value.trim();
+                    
+                    if (text) {
+                        checklistItems.push({
+                            id: `${Date.now()}-${index}`,
+                            text: text,
+                            completed: checkbox.checked
+                        });
+                    }
+                });
+                
+                if (state.editingTaskId) {
+                    // Update existing task
+                    const taskIndex = state.tasks.findIndex(t => t.id === state.editingTaskId);
+                    if (taskIndex !== -1) {
+                        state.tasks[taskIndex] = {
+                            ...state.tasks[taskIndex],
+                            title,
+                            description,
+                            deadline,
+                            priority,
+                            status,
+                            reminder,
+                            checklist: checklistItems,
+                            sharedWith: [...state.collaborators],
+                            updatedAt: new Date().toISOString()
+                        };
+                    }
+                } else {
+                    // Add new task
+                    const newTask = {
+                        id: Date.now().toString(),
+                        title,
+                        description,
+                        deadline,
+                        priority,
+                        status,
+                        reminder,
+                        checklist: checklistItems,
+                        userId: state.currentUser ? state.currentUser.id : 'guest',
+                        userEmail: state.currentUser ? state.currentUser.email : 'guest@example.com',
+                        createdAt: new Date().toISOString(),
+                        sharedWith: [...state.collaborators]
+                    };
+                    
+                    state.tasks.push(newTask);
+                }
+                
+                saveTasks();
+                closeTaskModal();
+                alert('Tugas berhasil disimpan!');
+            }
+            
+            function deleteTask(taskId) {
+                if (confirm('Apakah Anda yakin ingin menghapus tugas ini?')) {
+                    state.tasks = state.tasks.filter(task => task.id !== taskId);
+                    saveTasks();
+                    alert('Tugas berhasil dihapus!');
+                }
+            }
+            
+            function updateTaskStatus(taskId, newStatus) {
+                const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+                if (taskIndex !== -1) {
+                    state.tasks[taskIndex].status = newStatus;
+                    state.tasks[taskIndex].updatedAt = new Date().toISOString();
+                    saveTasks();
+                }
+            }
+            
+            function renderTasks() {
+                let filteredTasks = [...state.tasks];
+                
+                // Filter berdasarkan user
+                if (state.currentUser) {
+                    // Tampilkan tugas milik user dan yang dibagikan ke user
+                    filteredTasks = filteredTasks.filter(task => 
+                        task.userId === state.currentUser.id || 
+                        (task.sharedWith && task.sharedWith.includes(state.currentUser.email))
+                    );
+                } else {
+                    // Guest hanya melihat tugas guest
+                    filteredTasks = filteredTasks.filter(task => task.userId === 'guest');
+                }
+                
+                // Apply filter
+                if (state.currentFilter === 'today') {
+                    const today = new Date().toISOString().split('T')[0];
+                    filteredTasks = filteredTasks.filter(task => task.deadline === today);
+                } else if (state.currentFilter === 'high') {
+                    filteredTasks = filteredTasks.filter(task => task.priority === 'high');
+                }
+                
+                // Apply search
+                const searchTerm = elements.searchTask.value.toLowerCase();
+                if (searchTerm) {
+                    filteredTasks = filteredTasks.filter(task => 
+                        task.title.toLowerCase().includes(searchTerm) || 
+                        task.description.toLowerCase().includes(searchTerm)
+                    );
+                }
+                
+                // Apply sort
+                if (state.currentSort === 'deadline') {
+                    filteredTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+                } else if (state.currentSort === 'priority') {
+                    const priorityOrder = { high: 3, medium: 2, low: 1 };
+                    filteredTasks.sort((a, b) => priorityOrder[b.priority] - priorityOrder[a.priority]);
+                }
+                
+                // Render tasks
+                if (filteredTasks.length === 0) {
+                    elements.tasksContainer.innerHTML = `
+                        <div class="text-center py-10">
+                            <i class="fas fa-tasks text-4xl text-gray-300 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-500">Tidak ada tugas</h3>
+                            <p class="text-gray-400 mt-2">${searchTerm ? 'Tidak ditemukan tugas dengan kata kunci tersebut' : 'Klik "Tambah Tugas Baru" untuk membuat tugas'}</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let tasksHTML = '';
+                
+                filteredTasks.forEach(task => {
+                    // Format tanggal
+                    const deadlineDate = new Date(task.deadline);
+                    const today = new Date();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(today.getDate() + 1);
+                    
+                    let deadlineText = '';
+                    let deadlineClass = '';
+                    
+                    if (task.deadline === today.toISOString().split('T')[0]) {
+                        deadlineText = 'Hari ini';
+                        deadlineClass = 'bg-red-100 text-red-800';
+                    } else if (task.deadline === tomorrow.toISOString().split('T')[0]) {
+                        deadlineText = 'Besok';
+                        deadlineClass = 'bg-yellow-100 text-yellow-800';
+                    } else {
+                        const options = { day: 'numeric', month: 'short', year: 'numeric' };
+                        deadlineText = deadlineDate.toLocaleDateString('id-ID', options);
+                        deadlineClass = 'bg-gray-100 text-gray-800';
+                    }
+                    
+                    // Priority badge
+                    const priorityText = {
+                        low: 'Rendah',
+                        medium: 'Sedang',
+                        high: 'Tinggi'
+                    }[task.priority];
+                    
+                    const priorityClass = {
+                        low: 'bg-green-100 text-green-800',
+                        medium: 'bg-yellow-100 text-yellow-800',
+                        high: 'bg-red-100 text-red-800'
+                    }[task.priority];
+                    
+                    // Status badge
+                    const statusText = {
+                        'todo': 'To Do',
+                        'in-progress': 'In Progress',
+                        'done': 'Done'
+                    }[task.status];
+                    
+                    const statusClass = {
+                        'todo': 'status-todo',
+                        'in-progress': 'status-in-progress',
+                        'done': 'status-done'
+                    }[task.status];
+                    
+                    // Progress checklist
+                    let checklistProgress = 0;
+                    if (task.checklist && task.checklist.length > 0) {
+                        const completed = task.checklist.filter(item => item.completed).length;
+                        checklistProgress = Math.round((completed / task.checklist.length) * 100);
+                    }
+                    
+                    // Tentukan kepemilikan tugas
+                    const isOwner = state.currentUser ? task.userId === state.currentUser.id : task.userId === 'guest';
+                    const ownerText = isOwner ? 'Milik Anda' : `Dibagikan oleh: ${task.userEmail || 'Pengguna lain'}`;
+                    
+                    // Shared indicator
+                    const sharedCount = task.sharedWith ? task.sharedWith.length : 0;
+                    const sharedIndicator = sharedCount > 0 ? 
+                        `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                            <i class="fas fa-users mr-1"></i>${sharedCount}
+                        </span>` : '';
+                    
+                    tasksHTML += `
+                        <div class="task-item bg-white border rounded-xl p-5 mb-4 shadow-sm ${task.priority}-priority" data-task-id="${task.id}">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex items-center">
+                                    <h3 class="font-bold text-lg text-gray-800">${task.title}</h3>
+                                    ${sharedIndicator}
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="edit-task p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    ${isOwner ? `
+                                    <button class="delete-task p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg" title="Hapus">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <p class="text-gray-600 mb-4">${task.description}</p>
+                            
+                            <div class="flex flex-wrap gap-2 mb-4">
+                                <span class="text-xs ${deadlineClass} px-3 py-1 rounded-full">📅 ${deadlineText}</span>
+                                <span class="text-xs ${priorityClass} px-3 py-1 rounded-full">${priorityText}</span>
+                                <span class="text-xs ${statusClass} px-3 py-1 rounded-full">${statusText}</span>
+                                ${task.reminder !== 'none' ? `<span class="text-xs bg-purple-100 text-purple-800 px-3 py-1 rounded-full">🔔 ${task.reminder === '1-hour' ? '1 jam sebelum' : task.reminder === '1-day' ? '1 hari sebelum' : 'Hari H'}</span>` : ''}
+                                <span class="text-xs bg-gray-100 text-gray-800 px-3 py-1 rounded-full">${ownerText}</span>
+                            </div>
+                            
+                            ${task.sharedWith && task.sharedWith.length > 0 ? `
+                                <div class="mb-4">
+                                    <span class="text-sm font-medium text-gray-700">Dibagikan dengan:</span>
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        ${task.sharedWith.map(email => `
+                                            <span class="collaborator-tag">
+                                                <i class="fas fa-user mr-1"></i>${email}
+                                            </span>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            ${task.checklist && task.checklist.length > 0 ? `
+                                <div class="mb-4">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-sm font-medium text-gray-700">Checklist:</span>
+                                        <span class="text-xs text-gray-600">${checklistProgress}% selesai</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: ${checklistProgress}%"></div>
+                                    </div>
+                                    <div class="mt-2 space-y-1">
+                                        ${task.checklist.map(item => `
+                                            <div class="flex items-center">
+                                                <input type="checkbox" ${item.completed ? 'checked' : ''} class="checkbox-custom mr-2" data-task-id="${task.id}" data-item-id="${item.id}">
+                                                <span class="text-sm ${item.completed ? 'line-through text-gray-500' : 'text-gray-700'}">${item.text}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="flex justify-between items-center">
+                                <div class="text-xs text-gray-500">
+                                    Dibuat: ${new Date(task.createdAt).toLocaleDateString('id-ID')}
+                                </div>
+                                <div class="flex space-x-2">
+                                    <button class="status-btn text-xs px-3 py-1 rounded-lg ${task.status === 'todo' ? 'bg-gray-100 text-gray-800' : 'hover:bg-gray-100'}" data-status="todo" data-task-id="${task.id}">To Do</button>
+                                    <button class="status-btn text-xs px-3 py-1 rounded-lg ${task.status === 'in-progress' ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-100'}" data-status="in-progress" data-task-id="${task.id}">In Progress</button>
+                                    <button class="status-btn text-xs px-3 py-1 rounded-lg ${task.status === 'done' ? 'bg-green-100 text-green-800' : 'hover:bg-gray-100'}" data-status="done" data-task-id="${task.id}">Done</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                elements.tasksContainer.innerHTML = tasksHTML;
+                
+                // Add event listeners untuk task actions
+                document.querySelectorAll('.edit-task').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const taskId = this.closest('.task-item').getAttribute('data-task-id');
+                        openTaskModal('edit', taskId);
+                    });
+                });
+                
+                document.querySelectorAll('.delete-task').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const taskId = this.closest('.task-item').getAttribute('data-task-id');
+                        deleteTask(taskId);
+                    });
+                });
+                
+                document.querySelectorAll('.status-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const taskId = this.getAttribute('data-task-id');
+                        const status = this.getAttribute('data-status');
+                        updateTaskStatus(taskId, status);
+                    });
+                });
+                
+                // Add event listeners untuk checklist items di task list
+                document.querySelectorAll('.checkbox-custom[data-task-id]').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        const taskId = this.getAttribute('data-task-id');
+                        const itemId = this.getAttribute('data-item-id');
+                        toggleChecklistItem(taskId, itemId);
+                    });
+                });
+            }
+            
+            function updateStatistics() {
+                // Filter tasks berdasarkan user
+                let userTasks = [];
+                if (state.currentUser) {
+                    userTasks = state.tasks.filter(task => 
+                        task.userId === state.currentUser.id || 
+                        (task.sharedWith && task.sharedWith.includes(state.currentUser.email))
+                    );
+                } else {
+                    userTasks = state.tasks.filter(task => task.userId === 'guest');
+                }
+                
+                const todoTasks = userTasks.filter(task => task.status === 'todo');
+                const inProgressTasks = userTasks.filter(task => task.status === 'in-progress');
+                const doneTasks = userTasks.filter(task => task.status === 'done');
+                
+                // Update counts
+                elements.todoCount.textContent = todoTasks.length;
+                elements.inProgressCount.textContent = inProgressTasks.length;
+                elements.doneCount.textContent = doneTasks.length;
+                
+                // Update progress
+                const totalTasks = userTasks.length;
+                const completedTasks = doneTasks.length;
+                const progressPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+                
+                elements.overallProgress.style.width = `${progressPercentage}%`;
+                elements.progressPercentage.textContent = `${progressPercentage}%`;
+            }
+            
+            function toggleSort() {
+                // Toggle antara deadline dan priority
+                state.currentSort = state.currentSort === 'deadline' ? 'priority' : 'deadline';
+                
+                // Update icon
+                const icon = elements.sortTasksBtn.querySelector('i');
+                if (state.currentSort === 'deadline') {
+                    icon.className = 'fas fa-sort-amount-down';
+                    elements.sortTasksBtn.title = 'Urutkan berdasarkan deadline';
+                } else {
+                    icon.className = 'fas fa-exclamation-circle';
+                    elements.sortTasksBtn.title = 'Urutkan berdasarkan prioritas';
+                }
+                
+                renderTasks();
+            }
+            
+            // Checklist functions
+            function addChecklistItem(text = '', completed = false, id = null) {
+                const itemId = id || `checklist-${Date.now()}`;
+                const checklistItem = document.createElement('div');
+                checklistItem.className = 'flex items-center justify-between mb-3 checklist-item';
+                checklistItem.innerHTML = `
+                    <div class="flex items-center">
+                        <input type="checkbox" class="checkbox-custom mr-3" ${completed ? 'checked' : ''}>
+                        <input type="text" class="border-b border-gray-300 bg-transparent focus:outline-none focus:border-indigo-500 py-1 text-sm w-64" placeholder="Deskripsi subtugas" value="${text}">
+                    </div>
+                    <button type="button" class="text-red-500 hover:text-red-700 remove-checklist">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                
+                elements.checklistContainer.appendChild(checklistItem);
+                updateChecklistProgress();
+            }
+            
+            function handleChecklistClick(e) {
+                if (e.target.closest('.remove-checklist')) {
+                    e.target.closest('.checklist-item').remove();
+                    updateChecklistProgress();
+                }
+            }
+            
+            function updateChecklistProgress() {
+                const checklistItems = elements.checklistContainer.querySelectorAll('.checklist-item');
+                const totalItems = checklistItems.length;
+                
+                if (totalItems === 0) {
+                    elements.checklistProgress.textContent = '0/0';
+                    elements.checklistProgressBar.style.width = '0%';
+                    return;
+                }
+                
+                const completedItems = Array.from(checklistItems).filter(item => {
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    return checkbox.checked;
+                }).length;
+                
+                const progressPercentage = Math.round((completedItems / totalItems) * 100);
+                
+                elements.checklistProgress.textContent = `${completedItems}/${totalItems}`;
+                elements.checklistProgressBar.style.width = `${progressPercentage}%`;
+            }
+            
+            function toggleChecklistItem(taskId, itemId) {
+                const taskIndex = state.tasks.findIndex(t => t.id === taskId);
+                if (taskIndex === -1) return;
+                
+                const task = state.tasks[taskIndex];
+                if (!task.checklist) return;
+                
+                const itemIndex = task.checklist.findIndex(item => item.id === itemId);
+                if (itemIndex === -1) return;
+                
+                // Toggle status
+                task.checklist[itemIndex].completed = !task.checklist[itemIndex].completed;
+                task.updatedAt = new Date().toISOString();
+                
+                saveTasks();
+            }
+            
+            // Collaboration functions
+            function addCollaborator() {
+                const email = elements.collabEmail.value.trim().toLowerCase();
+                
+                if (!email) {
+                    alert('Email harus diisi!');
+                    return;
+                }
+                
+                // Validasi email sederhana
+                if (!email.includes('@') || !email.includes('.')) {
+                    alert('Format email tidak valid!');
+                    return;
+                }
+                
+                // Cek apakah email adalah email pengguna sendiri
+                if (state.currentUser && email === state.currentUser.email.toLowerCase()) {
+                    alert('Tidak dapat menambahkan diri sendiri sebagai kolaborator!');
+                    return;
+                }
+                
+                // Cek apakah email sudah ada dalam daftar
+                if (state.collaborators.includes(email)) {
+                    alert('Email sudah ditambahkan sebagai kolaborator!');
+                    return;
+                }
+                
+                // Tambah ke daftar kolaborator
+                state.collaborators.push(email);
+                elements.collabEmail.value = '';
+                renderCollaborators();
+            }
+            
+            function removeCollaborator(e) {
+                if (e.target.closest('.remove-collaborator')) {
+                    const email = e.target.closest('.remove-collaborator').getAttribute('data-email');
+                    state.collaborators = state.collaborators.filter(c => c !== email);
+                    renderCollaborators();
+                }
+            }
+            
+            function renderCollaborators() {
+                if (state.collaborators.length === 0) {
+                    elements.collaboratorsList.innerHTML = '<p class="text-sm text-gray-500 italic">Belum ada kolaborator</p>';
+                    return;
+                }
+                
+                let html = '<div class="flex flex-wrap gap-2">';
+                state.collaborators.forEach(email => {
+                    html += `
+                        <div class="collaborator-tag">
+                            <i class="fas fa-user mr-1"></i>${email}
+                            <button type="button" class="remove-collaborator" data-email="${email}">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                elements.collaboratorsList.innerHTML = html;
+            }
+            
+            function renderSharedTasks() {
+                // Tampilkan tugas yang dibagikan dengan user saat ini
+                if (!state.currentUser) {
+                    elements.sharedTasksList.innerHTML = '<p class="text-sm text-gray-500 italic">Login untuk melihat tugas yang dibagikan</p>';
+                    return;
+                }
+                
+                const sharedTasks = state.tasks.filter(task => 
+                    task.sharedWith && task.sharedWith.includes(state.currentUser.email)
+                );
+                
+                if (sharedTasks.length === 0) {
+                    elements.sharedTasksList.innerHTML = '<p class="text-sm text-gray-500 italic">Belum ada tugas yang dibagikan dengan Anda</p>';
+                    return;
+                }
+                
+                let sharedTasksHTML = '';
+                sharedTasks.forEach(task => {
+                    // Format tanggal deadline
+                    const deadlineDate = new Date(task.deadline);
+                    const deadlineText = deadlineDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+                    
+                    // Status color
+                    const statusColor = {
+                        'todo': 'bg-gray-100 text-gray-800',
+                        'in-progress': 'bg-blue-100 text-blue-800',
+                        'done': 'bg-green-100 text-green-800'
+                    }[task.status];
+                    
+                    // Priority color
+                    const priorityColor = {
+                        'low': 'bg-green-100 text-green-800',
+                        'medium': 'bg-yellow-100 text-yellow-800',
+                        'high': 'bg-red-100 text-red-800'
+                    }[task.priority];
+                    
+                    sharedTasksHTML += `
+                        <div class="bg-gray-50 p-3 rounded-lg">
+                            <div class="flex justify-between items-start mb-2">
+                                <h4 class="font-medium text-sm text-gray-800">${task.title}</h4>
+                                <span class="text-xs ${priorityColor} px-2 py-1 rounded-full">
+                                    ${task.priority === 'high' ? 'Tinggi' : task.priority === 'medium' ? 'Sedang' : 'Rendah'}
+                                </span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div>
+                                    <span class="text-xs ${statusColor} px-2 py-1 rounded-full mr-2">
+                                        ${task.status === 'todo' ? 'To Do' : task.status === 'in-progress' ? 'In Progress' : 'Done'}
+                                    </span>
+                                    <span class="text-xs text-gray-600">📅 ${deadlineText}</span>
+                                </div>
+                                <button class="edit-shared-task text-xs text-blue-600 hover:text-blue-800" data-task-id="${task.id}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">Dibagikan oleh: ${task.userEmail || 'Pengguna lain'}</p>
+                        </div>
+                    `;
+                });
+                
+                elements.sharedTasksList.innerHTML = sharedTasksHTML;
+                
+                // Add event listeners untuk edit shared tasks
+                document.querySelectorAll('.edit-shared-task').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const taskId = this.getAttribute('data-task-id');
+                        openTaskModal('edit', taskId);
+                    });
+                });
+            }
+            
+            // Notification functions
+            function checkNotifications() {
+                const now = new Date();
+                state.notifications = [];
+                
+                // Cek tugas yang perlu diingatkan
+                state.tasks.forEach(task => {
+                    if (task.reminder === 'none') return;
+                    
+                    const deadline = new Date(task.deadline);
+                    const timeDiff = deadline.getTime() - now.getTime();
+                    
+                    // Cek apakah sudah waktunya untuk reminder
+                    let shouldNotify = false;
+                    
+                    if (task.reminder === '1-hour' && timeDiff <= 3600000 && timeDiff > 0) {
+                        shouldNotify = true;
+                    } else if (task.reminder === '1-day' && timeDiff <= 86400000 && timeDiff > 0) {
+                        shouldNotify = true;
+                    } else if (task.reminder === 'same-day' && deadline.toDateString() === now.toDateString()) {
+                        shouldNotify = true;
+                    }
+                    
+                    if (shouldNotify) {
+                        // Cek apakah notifikasi sudah pernah ditampilkan
+                        const notificationKey = `notification_${task.id}_${task.reminder}`;
+                        const lastShown = localStorage.getItem(notificationKey);
+                        
+                        if (!lastShown || (now.getTime() - parseInt(lastShown)) > 3600000) {
+                            state.notifications.push({
+                                taskId: task.id,
+                                title: task.title,
+                                message: `Tugas "${task.title}" ${task.reminder === '1-hour' ? 'akan deadline dalam 1 jam' : task.reminder === '1-day' ? 'akan deadline besok' : 'deadline hari ini'}`,
+                                time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+                            });
+                            
+                            // Simpan waktu notifikasi terakhir
+                            localStorage.setItem(notificationKey, now.getTime().toString());
+                        }
+                    }
+                });
+                
+                // Update badge notifikasi
+                if (state.notifications.length > 0) {
+                    elements.notificationBadge.textContent = state.notifications.length;
+                    elements.notificationBadge.classList.remove('hidden');
+                    
+                    // Tampilkan notifikasi terbaru
+                    showNotification(state.notifications[0]);
+                } else {
+                    elements.notificationBadge.classList.add('hidden');
+                }
+            }
+            
+            function showNotification(notification) {
+                elements.notificationMessage.textContent = notification.message;
+                elements.notificationTime.textContent = notification.time;
+                elements.notificationPopup.classList.remove('hidden');
+                
+                // Auto-hide setelah 10 detik
+                setTimeout(() => {
+                    if (!elements.notificationPopup.classList.contains('hidden')) {
+                        closeNotification();
+                    }
+                }, 10000);
+            }
+            
+            function closeNotification() {
+                elements.notificationPopup.classList.add('hidden');
+            }
+            
+            function showNotifications() {
+                if (state.notifications.length === 0) {
+                    alert('Tidak ada notifikasi saat ini.');
+                    return;
+                }
+                
+                let message = "Notifikasi Tugas:\n\n";
+                state.notifications.forEach((notif, index) => {
+                    message += `${index + 1}. ${notif.message} (${notif.time})\n`;
+                });
+                
+                alert(message);
+            }
+            
+            // Inisialisasi aplikasi
+            initApp();
+        });
+    </script>
+</body>
+</html>
